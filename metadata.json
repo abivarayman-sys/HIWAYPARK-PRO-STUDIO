@@ -1,0 +1,7 @@
+{
+  "name": "Hiwaypark Pro Studio",
+  "description": "Advanced AI-powered photo editing and printing layout software for professional ID and portrait services.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
