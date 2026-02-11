@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../Button';
 import { UsersIcon, SparklesIcon } from '../icons';
 import { geminiService } from '../../services/geminiService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface GroupPanelProps {
   currentImage: string | null;
@@ -10,6 +11,7 @@ interface GroupPanelProps {
 }
 
 export const GroupPanel: React.FC<GroupPanelProps> = ({ currentImage, onImageEdit, burnCurrentFilters }) => {
+  const { credits, deductCredit } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   
@@ -18,6 +20,10 @@ export const GroupPanel: React.FC<GroupPanelProps> = ({ currentImage, onImageEdi
 
   const handleGroupEdit = async (prompt: string) => {
     if (!currentImage) return;
+    if (credits <= 0) {
+      setError("Out of AI credits. Please upgrade your plan.");
+      return;
+    }
     
     setIsProcessing(true);
     setError('');
@@ -25,7 +31,13 @@ export const GroupPanel: React.FC<GroupPanelProps> = ({ currentImage, onImageEdi
     try {
       const baseImage = await burnCurrentFilters() || currentImage;
       const resultBase64 = await geminiService.editImage(baseImage, prompt);
-      onImageEdit(resultBase64);
+      
+      const deducted = await deductCredit(1);
+      if (deducted) {
+        onImageEdit(resultBase64);
+      } else {
+        throw new Error("Failed to deduct credits.");
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'An error occurred while processing the image.');
@@ -67,6 +79,10 @@ export const GroupPanel: React.FC<GroupPanelProps> = ({ currentImage, onImageEdi
           Group & Family Magic
         </h2>
         <p className="text-sm text-slate-400 mb-4">Smartly fix group blunders or coordinate everyone's outfits and backgrounds.</p>
+        <div className="bg-slate-800/50 border border-slate-700 rounded p-2 text-xs flex justify-between">
+          <span className="text-slate-400">Cost per edit:</span>
+          <span className="text-brand-400 font-bold">1 Credit</span>
+        </div>
       </div>
 
       {error && (
@@ -82,6 +98,7 @@ export const GroupPanel: React.FC<GroupPanelProps> = ({ currentImage, onImageEdi
         <Button 
           onClick={handleFixClosedEyes}
           loading={isProcessing}
+          disabled={isProcessing || credits <= 0}
           icon={<SparklesIcon width={16} height={16} />}
         >
           Auto-Fix Closed Eyes
@@ -111,11 +128,11 @@ export const GroupPanel: React.FC<GroupPanelProps> = ({ currentImage, onImageEdi
           onChange={(e) => setDressCodeInput(e.target.value)}
           placeholder="e.g. Matching blue polo shirts"
           className="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-sm text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-          disabled={isProcessing}
+          disabled={isProcessing || credits <= 0}
         />
         <Button 
           variant="secondary"
-          disabled={!dressCodeInput.trim() || isProcessing}
+          disabled={!dressCodeInput.trim() || isProcessing || credits <= 0}
           loading={isProcessing}
           onClick={handleApplyDressCode}
         >
@@ -146,11 +163,11 @@ export const GroupPanel: React.FC<GroupPanelProps> = ({ currentImage, onImageEdi
           onChange={(e) => setThemeInput(e.target.value)}
           placeholder="e.g. A festive holiday living room"
           className="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-sm text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-          disabled={isProcessing}
+          disabled={isProcessing || credits <= 0}
         />
         <Button 
           variant="secondary"
-          disabled={!themeInput.trim() || isProcessing}
+          disabled={!themeInput.trim() || isProcessing || credits <= 0}
           loading={isProcessing}
           onClick={handleApplyTheme}
         >

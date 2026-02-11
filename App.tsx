@@ -13,9 +13,14 @@ import { PrintPanel } from './components/ToolPanels/PrintPanel';
 import { ToolMode, PhotoState, CropRect, PRINT_SIZES } from './types';
 import { applyFiltersToDataUrl, cropImageBase64, applyCleanupMask } from './utils/imageUtils';
 import { geminiService } from './services/geminiService';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthScreen } from './components/AuthScreen';
+import { DashboardModal } from './components/DashboardModal';
 
-const App: React.FC = () => {
+const MainApp: React.FC = () => {
+  const { user, credits, deductCredit } = useAuth();
   const [activeMode, setActiveMode] = useState<ToolMode>(ToolMode.SOURCE);
+  const [showDashboard, setShowDashboard] = useState(false);
   
   // Central state for the image and edits
   const [photoState, setPhotoState] = useState<PhotoState>({
@@ -153,6 +158,12 @@ const App: React.FC = () => {
   // Action: Apply Cleanup (Content Aware Fill)
   const handleApplyCleanup = async () => {
     if (!photoState.currentBase64 || !cleanupCanvasRef.current) return;
+    
+    if (credits <= 0) {
+      setCleanupError("Out of AI credits. Please upgrade your plan.");
+      return;
+    }
+
     setIsProcessing(true);
     setCleanupError('');
     try {
@@ -174,7 +185,13 @@ const App: React.FC = () => {
       const prompt = "CRITICAL INSTRUCTION: Analyze the bright red brush strokes overlaid on this image. Remove everything underneath the red strokes and intelligently fill the gaps using content-aware background matching (in-painting). The output MUST NOT have the red strokes anymore. Preserve the rest of the image, the person's identity, and lighting EXACTLY as it is without any other modifications.";
       
       const resultBase64 = await geminiService.editImage(compositeBase64, prompt);
-      handleAddEdit(resultBase64);
+      
+      const deducted = await deductCredit(1);
+      if (deducted) {
+        handleAddEdit(resultBase64);
+      } else {
+        throw new Error("Failed to deduct credits");
+      }
     } catch (err: any) {
       console.error(err);
       setCleanupError(err.message || 'An error occurred during cleanup processing.');
@@ -308,10 +325,17 @@ const App: React.FC = () => {
   const { targetW, targetH } = getCurrentCropTargets();
   const targetCropAspect = targetH > 0 ? (targetW / targetH) : 1;
 
-  // Use h-[100dvh] for perfect mobile viewport fitting
+  if (!user) {
+    return <AuthScreen />;
+  }
+
   return (
     <div className="flex flex-col h-[100dvh] w-full bg-slate-950 font-sans text-slate-100 selection:bg-brand-500/30 overflow-hidden">
-      <Header onUndo={handleUndo} canUndo={photoState.historyIndex > 0} />
+      <Header 
+        onUndo={handleUndo} 
+        canUndo={photoState.historyIndex > 0} 
+        onOpenDashboard={() => setShowDashboard(true)}
+      />
       
       {/* Main Responsive Layout */}
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden w-full min-h-0">
@@ -344,7 +368,19 @@ const App: React.FC = () => {
           />
         </div>
       </div>
+
+      {showDashboard && (
+        <DashboardModal onClose={() => setShowDashboard(false)} />
+      )}
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 };
 

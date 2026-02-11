@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../Button';
 import { SmileIcon } from '../icons';
 import { geminiService } from '../../services/geminiService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface RetouchPanelProps {
   currentImage: string | null;
@@ -10,12 +11,17 @@ interface RetouchPanelProps {
 }
 
 export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentImage, onImageEdit, burnCurrentFilters }) => {
+  const { credits, deductCredit } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [error, setError] = useState('');
 
   const handleRetouch = async (prompt: string) => {
     if (!currentImage) return;
+    if (credits <= 0) {
+      setError("Out of AI credits. Please upgrade your plan.");
+      return;
+    }
     
     setIsProcessing(true);
     setError('');
@@ -23,7 +29,13 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentImage, onImag
     try {
       const baseImage = await burnCurrentFilters() || currentImage;
       const resultBase64 = await geminiService.editImage(baseImage, prompt);
-      onImageEdit(resultBase64);
+      
+      const deducted = await deductCredit(1);
+      if (deducted) {
+        onImageEdit(resultBase64);
+      } else {
+        throw new Error("Failed to deduct credits.");
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'An error occurred while processing the image.');
@@ -57,6 +69,10 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentImage, onImag
           Face Retouch
         </h2>
         <p className="text-sm text-slate-400 mb-4">Fix skin, adjust expressions, or try a new hairstyle instantly.</p>
+        <div className="bg-slate-800/50 border border-slate-700 rounded p-2 text-xs flex justify-between">
+          <span className="text-slate-400">Cost per edit:</span>
+          <span className="text-brand-400 font-bold">1 Credit</span>
+        </div>
       </div>
 
       {error && (
@@ -72,7 +88,7 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentImage, onImag
             key={idx}
             variant="secondary"
             className="justify-start text-left"
-            disabled={isProcessing}
+            disabled={isProcessing || credits <= 0}
             onClick={() => handleRetouch(preset.prompt)}
           >
             {preset.label}
@@ -93,10 +109,10 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentImage, onImag
           onChange={(e) => setCustomPrompt(e.target.value)}
           placeholder="e.g. Add light natural makeup, fix eyebrows..."
           className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 text-sm text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none h-24"
-          disabled={isProcessing}
+          disabled={isProcessing || credits <= 0}
         />
         <Button 
-          disabled={!customPrompt.trim() || isProcessing}
+          disabled={!customPrompt.trim() || isProcessing || credits <= 0}
           loading={isProcessing}
           onClick={() => handleRetouch(`CRITICAL INSTRUCTION: You must preserve the exact identity, facial features, and likeness of the person. ONLY make this change: ${customPrompt}`)}
           icon={<SmileIcon width={16} height={16} />}

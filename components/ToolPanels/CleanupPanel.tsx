@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../Button';
 import { EraserIcon, SparklesIcon } from '../icons';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface CleanupPanelProps {
   hasImage: boolean;
@@ -21,6 +22,8 @@ export const CleanupPanel: React.FC<CleanupPanelProps> = ({
   isProcessing,
   error
 }) => {
+  const { credits } = useAuth();
+
   if (!hasImage) {
     return (
       <div className="p-4 text-center text-slate-500 mt-10">
@@ -37,11 +40,21 @@ export const CleanupPanel: React.FC<CleanupPanelProps> = ({
           Magic Eraser
         </h2>
         <p className="text-sm text-slate-400 mb-4">Draw over stray hairs, messy edges, or unwanted objects to intelligently remove them.</p>
+        <div className="bg-slate-800/50 border border-slate-700 rounded p-2 text-xs flex justify-between">
+          <span className="text-slate-400">Cost per edit:</span>
+          <span className="text-brand-400 font-bold">1 Credit</span>
+        </div>
       </div>
 
       {error && (
         <div className="bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 rounded-md text-sm">
           {error}
+        </div>
+      )}
+
+      {credits <= 0 && (
+        <div className="bg-orange-900/30 border border-orange-800 text-orange-300 px-4 py-3 rounded-md text-sm">
+          Out of AI credits. Please upgrade your plan in the dashboard.
         </div>
       )}
 
@@ -77,6 +90,7 @@ export const CleanupPanel: React.FC<CleanupPanelProps> = ({
         <Button 
           onClick={onApplyCleanup}
           loading={isProcessing}
+          disabled={isProcessing || credits <= 0}
           icon={<SparklesIcon width={16} height={16} />}
         >
           Apply Content Aware Fill

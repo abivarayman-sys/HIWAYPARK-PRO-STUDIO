@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../Button';
 import { SparklesIcon } from '../icons';
 import { geminiService } from '../../services/geminiService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AIPanelProps {
   currentImage: string | null;
@@ -10,23 +11,31 @@ interface AIPanelProps {
 }
 
 export const AIPanel: React.FC<AIPanelProps> = ({ currentImage, onImageEdit, burnCurrentFilters }) => {
+  const { credits, deductCredit } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [error, setError] = useState('');
 
   const handleAIEdit = async (prompt: string) => {
     if (!currentImage) return;
+    if (credits <= 0) {
+      setError("Out of AI credits. Please upgrade your plan.");
+      return;
+    }
     
     setIsProcessing(true);
     setError('');
     
     try {
-      // If user tweaked brightness/contrast, we need to apply them to a base64 string
-      // before sending to the AI, so the AI "sees" the adjusted image.
       const baseImage = await burnCurrentFilters() || currentImage;
-      
       const resultBase64 = await geminiService.editImage(baseImage, prompt);
-      onImageEdit(resultBase64);
+      
+      const deducted = await deductCredit(1);
+      if(deducted) {
+        onImageEdit(resultBase64);
+      } else {
+        throw new Error("Failed to deduct credits.");
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'An error occurred while processing the image.');
@@ -59,6 +68,10 @@ export const AIPanel: React.FC<AIPanelProps> = ({ currentImage, onImageEdit, bur
           AI Magic Edits
         </h2>
         <p className="text-sm text-slate-400 mb-4">Powered by Gemini. Changes may take a few seconds to process.</p>
+        <div className="bg-slate-800/50 border border-slate-700 rounded p-2 text-xs flex justify-between">
+          <span className="text-slate-400">Cost per edit:</span>
+          <span className="text-brand-400 font-bold">1 Credit</span>
+        </div>
       </div>
 
       {error && (
@@ -74,7 +87,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ currentImage, onImageEdit, bur
             key={idx}
             variant="secondary"
             className="justify-start text-left"
-            disabled={isProcessing}
+            disabled={isProcessing || credits <= 0}
             onClick={() => handleAIEdit(preset.prompt)}
           >
             {preset.label}
@@ -95,10 +108,10 @@ export const AIPanel: React.FC<AIPanelProps> = ({ currentImage, onImageEdit, bur
           onChange={(e) => setCustomPrompt(e.target.value)}
           placeholder="e.g. Change the background to red and make the shirt yellow..."
           className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 text-sm text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none h-24"
-          disabled={isProcessing}
+          disabled={isProcessing || credits <= 0}
         />
         <Button 
-          disabled={!customPrompt.trim() || isProcessing}
+          disabled={!customPrompt.trim() || isProcessing || credits <= 0}
           loading={isProcessing}
           onClick={() => handleAIEdit(customPrompt)}
           icon={<SparklesIcon width={16} height={16} />}
