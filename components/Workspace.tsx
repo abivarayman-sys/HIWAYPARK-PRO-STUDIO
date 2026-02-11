@@ -42,6 +42,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       const canvas = cleanupCanvasRef.current;
       
       const setSize = () => {
+        if (!img.naturalWidth || !img.naturalHeight) return;
         if (canvas.width !== img.naturalWidth || canvas.height !== img.naturalHeight) {
           // Only resize if natural dimensions differ to avoid clearing canvas unnecessarily
           canvas.width = img.naturalWidth;
@@ -107,13 +108,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-slate-950 relative overflow-hidden flex items-center justify-center w-full h-full">
+    <div className="flex-1 relative flex items-center justify-center w-full h-full min-h-0 min-w-0 overflow-hidden">
       {/* Grid pattern background */}
       <div className="absolute inset-0 z-0 opacity-[0.03]" 
            style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
       </div>
 
-      <div className="z-10 w-full h-full p-4 md:p-8 flex items-center justify-center relative">
+      <div className="z-10 w-full h-full p-2 md:p-8 flex items-center justify-center min-h-0 min-w-0">
         {currentBase64 ? (
           activeMode === ToolMode.CROP && targetCropAspectRatio && onCropChange ? (
              <ImageCropper 
@@ -122,13 +123,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                onChange={onCropChange}
              />
           ) : (
-            <div className="relative shadow-2xl shadow-black/50 rounded-lg overflow-hidden border border-slate-700/50 bg-black flex items-center justify-center max-w-full max-h-full">
+            // Use inline-flex to perfectly shrink-wrap the scaled image, ensuring the overlay canvas matches identically.
+            <div 
+              className="relative inline-flex shadow-2xl shadow-black/50 rounded-lg overflow-hidden border border-slate-700/50 bg-black shrink-0" 
+              style={{ maxWidth: '100%', maxHeight: '100%', touchAction: 'none' }}
+            >
               <img 
                 ref={imgRef}
                 src={currentBase64} 
                 alt="Current Edit" 
-                className="max-w-full max-h-[80vh] md:max-h-[85vh] object-contain transition-all duration-200 block"
-                style={filterStyle}
+                className="block transition-all duration-200"
+                style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', ...filterStyle }}
                 draggable={false}
               />
               
@@ -140,7 +145,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 onPointerUp={stopDrawing}
                 onPointerCancel={stopDrawing}
                 className={`absolute inset-0 w-full h-full touch-none ${activeMode === ToolMode.CLEANUP ? 'cursor-crosshair z-20' : 'pointer-events-none hidden'}`}
-                style={{ objectFit: 'contain' }}
               />
             </div>
           )

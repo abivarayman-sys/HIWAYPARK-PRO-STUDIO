@@ -153,13 +153,19 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ src, targetAspectRat
   }, [isDragging, handlePointerMove, handlePointerUp]);
 
   return (
-    <div className="relative inline-block max-w-full max-h-full" ref={containerRef}>
+    // inline-flex perfectly bounds the container exactly to the visual image size
+    <div 
+      className="relative inline-flex shrink-0 bg-black shadow-2xl border border-slate-700/50 touch-none" 
+      ref={containerRef} 
+      style={{ maxWidth: '100%', maxHeight: '100%', touchAction: 'none' }}
+    >
       {/* The base image */}
       <img 
         ref={imgRef}
         src={src} 
         alt="Crop Source" 
-        className="block max-w-full max-h-[80vh] pointer-events-none select-none"
+        className="block pointer-events-none select-none"
+        style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
         onLoad={() => {
           // Trigger the effect by just reading dimensions (handled in useEffect)
         }}
@@ -195,10 +201,10 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ src, targetAspectRat
       </svg>
 
       {/* Interactive elements */}
-      <div className="absolute inset-0 z-20 overflow-hidden">
+      <div className="absolute inset-0 z-20 overflow-hidden touch-none">
         {/* Draggable center area */}
         <div
-          className="absolute cursor-move"
+          className="absolute cursor-move touch-none"
           style={{ 
             left: `${crop.x}%`, 
             top: `${crop.y}%`, 
@@ -208,24 +214,24 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ src, targetAspectRat
           onPointerDown={(e) => handlePointerDown(e, 'move')}
         />
 
-        {/* Resize Handles */}
+        {/* Resize Handles - Increased to w-8 h-8 for flawless mobile touch targets */}
         <div
-          className="absolute w-4 h-4 bg-white border-2 border-brand-500 rounded-full cursor-nwse-resize transform -translate-x-1/2 -translate-y-1/2"
+          className="absolute w-8 h-8 bg-white border-4 border-brand-500 rounded-full shadow-lg cursor-nwse-resize transform -translate-x-1/2 -translate-y-1/2 touch-none"
           style={{ left: `${crop.x}%`, top: `${crop.y}%` }}
           onPointerDown={(e) => handlePointerDown(e, 'nw')}
         />
         <div
-          className="absolute w-4 h-4 bg-white border-2 border-brand-500 rounded-full cursor-nesw-resize transform translate-x-1/2 -translate-y-1/2"
+          className="absolute w-8 h-8 bg-white border-4 border-brand-500 rounded-full shadow-lg cursor-nesw-resize transform translate-x-1/2 -translate-y-1/2 touch-none"
           style={{ left: `${crop.x + crop.width}%`, top: `${crop.y}%` }}
           onPointerDown={(e) => handlePointerDown(e, 'ne')}
         />
         <div
-          className="absolute w-4 h-4 bg-white border-2 border-brand-500 rounded-full cursor-nesw-resize transform -translate-x-1/2 translate-y-1/2"
+          className="absolute w-8 h-8 bg-white border-4 border-brand-500 rounded-full shadow-lg cursor-nesw-resize transform -translate-x-1/2 translate-y-1/2 touch-none"
           style={{ left: `${crop.x}%`, top: `${crop.y + crop.height}%` }}
           onPointerDown={(e) => handlePointerDown(e, 'sw')}
         />
         <div
-          className="absolute w-4 h-4 bg-white border-2 border-brand-500 rounded-full cursor-nwse-resize transform translate-x-1/2 translate-y-1/2"
+          className="absolute w-8 h-8 bg-white border-4 border-brand-500 rounded-full shadow-lg cursor-nwse-resize transform translate-x-1/2 translate-y-1/2 touch-none"
           style={{ left: `${crop.x + crop.width}%`, top: `${crop.y + crop.height}%` }}
           onPointerDown={(e) => handlePointerDown(e, 'se')}
         />

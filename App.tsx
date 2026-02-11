@@ -308,27 +308,28 @@ const App: React.FC = () => {
   const { targetW, targetH } = getCurrentCropTargets();
   const targetCropAspect = targetH > 0 ? (targetW / targetH) : 1;
 
+  // Use h-[100dvh] for perfect mobile viewport fitting
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-950 font-sans text-slate-100 selection:bg-brand-500/30">
+    <div className="flex flex-col h-[100dvh] w-full bg-slate-950 font-sans text-slate-100 selection:bg-brand-500/30 overflow-hidden">
       <Header onUndo={handleUndo} canUndo={photoState.historyIndex > 0} />
       
       {/* Main Responsive Layout */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden w-full">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden w-full min-h-0">
         
         {/* Sidebar (Bottom on mobile, Left on desktop) */}
         <Sidebar 
           activeMode={activeMode} 
           onSelectMode={setActiveMode} 
-          className="order-3 md:order-1 flex flex-row md:flex-col w-full md:w-20 overflow-x-auto md:overflow-visible border-t md:border-t-0 md:border-r"
+          className="order-3 md:order-1 flex flex-row md:flex-col w-full md:w-20 shrink-0 overflow-x-auto md:overflow-visible border-t md:border-t-0 md:border-r bg-slate-900 z-20"
         />
         
         {/* Tool Panel (Drawer on mobile, beside Sidebar on desktop) */}
-        <div className="order-2 md:order-2 w-full md:w-80 h-[38vh] md:h-full shrink-0 overflow-y-auto bg-slate-900 border-t md:border-t-0 md:border-r border-slate-800 shadow-[0_-5px_20px_rgba(0,0,0,0.2)] md:shadow-xl z-10">
+        <div className="order-2 md:order-2 w-full md:w-80 h-[40vh] min-h-[250px] md:min-h-0 md:h-full shrink-0 overflow-y-auto bg-slate-900 border-t md:border-t-0 md:border-r border-slate-800 shadow-[0_-5px_20px_rgba(0,0,0,0.2)] md:shadow-xl z-10 flex flex-col">
           {renderToolPanel()}
         </div>
 
         {/* Workspace (Top on mobile, Right main area on desktop) */}
-        <div className="order-1 md:order-3 flex-1 overflow-hidden relative">
+        <div className="order-1 md:order-3 flex-1 overflow-hidden relative min-h-0 min-w-0 flex flex-col bg-slate-950">
           <Workspace 
             currentBase64={photoState.currentBase64} 
             brightness={photoState.brightness}
